@@ -4,7 +4,7 @@
 
 `github-issues` est une extension OpenChamber locale : un panneau qui liste les issues GitHub du projet ouvert, via la CLI `gh`. Sur chaque issue :
 
-- **Implement** (menu) : envoie un court prompt qui demande à l'agent de corriger l'issue, dans la session courante ou dans une nouvelle session.
+- **Implement** : ouvre une nouvelle session liée à l'issue, avec un court prompt qui demande à l'agent de la corriger.
 - **Commit** : ouvre un composer inline qui fait `git add -A` puis `git commit` avec un mot-clé de fermeture GitHub (`Closes #N`), pour que l'issue se ferme quand le commit arrive sur la branche par défaut. Un commentaire optionnel est posté sur l'issue avec le SHA.
 
 Le panneau est une iframe sandboxée : il ne peut lancer ni `gh` ni `git`. Le service local du package exécute ces deux binaires ; c'est sa seule raison d'être.
@@ -56,7 +56,7 @@ bun run check
 
 - Les modules `src/*.js` sont du JavaScript ESM pur, sans import Node ; ils sont couverts par `node --test`.
 - Le panneau repaint une section uniquement quand sa signature change (classe `Block`) ; les champs de saisie sont montés une fois et hors de toute signature.
-- Le panneau n'utilise que `connectHost()` (`serviceRequest`, `prompt`, `sessionLink`, `startSession`, `openUrl`, `toast`) et les primitives `@openchamber/sdk/ui`.
+- Le panneau n'utilise que `connectHost()` (`serviceRequest`, `startSession`, `openUrl`, `toast`) et les primitives `@openchamber/sdk/ui`.
 - Le service se bind sur `127.0.0.1` et exige le jeton Bearer `OPENCHAMBER_SERVICE_TOKEN` sur chaque requête.
 - **`execFile` uniquement, jamais de shell** : arguments en tableau, `cwd` = dossier validé, timeout (30 s ; 120 s pour `git commit` à cause des hooks), `maxBuffer` 8 Mo, prompts interactifs désactivés (`GH_PROMPT_DISABLED`, `GIT_TERMINAL_PROMPT=0`). Le message de commit et le commentaire passent par stdin.
 - **Validation du dossier** : `directory` obligatoire, absolu, sans NUL, résolu, existant et de type dossier. Le service ne fait pas confiance au panneau.
@@ -69,6 +69,6 @@ bun run check
 
 - `bun run check` passe.
 - Service vérifié en conditions réelles : 401 sans jeton, 404/405, 400 sur dossier relatif, `/changes` liste les fichiers, `POST /commit` produit `Closes #N`, second commit 409, mot-clé invalide 400, `/issues` en 502 lisible hors dépôt GitHub.
-- Panel vérifié avec un hôte simulé : liste, filtre, onglets, composer, Implement dans les deux modes.
+- Panel vérifié avec un hôte simulé : liste, filtre, onglets, composer, Implement (nouvelle session).
 - Ne jamais poster de vrai commentaire GitHub pendant les tests (commentaire vide).
 - Ne pas commit, push ni deploy : ces actions reviennent à l'utilisateur.

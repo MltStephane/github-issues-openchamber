@@ -4,7 +4,6 @@ import {
   mountBadge,
   mountBanner,
   mountButton,
-  mountMenu,
   mountSearchField,
   mountSelect,
   mountTabs,
@@ -24,11 +23,6 @@ const ISSUE_STATES = [
   { id: 'closed', label: 'Closed' },
 ];
 
-const IMPLEMENT_ITEMS = [
-  { id: 'this-session', label: 'Implement in this session' },
-  { id: 'new-session', label: 'Implement in a new session' },
-];
-
 type Issue = { number: number; title: string; url: string; author: string; labels: string[]; updatedAt: string; body: string };
 type IssueList = { repo: string; defaultBranch: string; issues: Issue[] };
 type ChangedFile = { status: string; path: string };
@@ -45,8 +39,6 @@ type HostLike = {
   serviceRequest?: (request: { method: 'GET' | 'POST'; path: string; query?: Record<string, string>; body?: string }) => Promise<ServiceResult>;
   toast?: (request: { kind: 'info' | 'success' | 'error'; message: string }) => Promise<void> | void;
   openUrl?: (url: string) => Promise<void>;
-  prompt?: (request: { text: string; send?: boolean }) => Promise<SentResult>;
-  sessionLink?: (request: IssueLink) => Promise<void>;
   startSession?: (request: IssueLink & { text: string; navigation?: 'preserve' | 'open' }) => Promise<StartedSession>;
 };
 
@@ -429,16 +421,9 @@ function issueRow(issue: Issue): HTMLElement {
   const actions = document.createElement('div');
   actions.className = 'gi-issue-actions';
 
-  const menuHolder = document.createElement('span');
-  actions.append(menuHolder);
-  listBlock.track(
-    mountMenu(menuHolder, {
-      label: 'Implement',
-      size: 'xs',
-      items: IMPLEMENT_ITEMS,
-      onSelect: (id) => void implement(issue, id),
-    }),
-  );
+  const implementHolder = document.createElement('span');
+  actions.append(implementHolder);
+  listBlock.track(mountButton(implementHolder, { label: 'Implement', size: 'xs', onClick: () => void implement(issue) }));
 
   const commitHolder = document.createElement('span');
   actions.append(commitHolder);
@@ -454,13 +439,13 @@ function openIssue(issue: Issue) {
   host?.openUrl?.(issue.url)?.catch((error: unknown) => setStatus(getErrorMessage(error)));
 }
 
-async function implement(issue: Issue, mode: string) {
+/** Starts a new session linked to the issue, with the fix prompt as its first message. */
+async function implement(issue: Issue) {
   if (state.implementing) return;
   state.implementing = true;
 
   try {
-    if (mode === 'new-session') await implementInNewSession(issue);
-    else await implementInThisSession(issue);
+    await startImplementSession(issue);
   } catch (error) {
     setStatus(getSessionErrorMessage(error));
   } finally {
@@ -468,25 +453,7 @@ async function implement(issue: Issue, mode: string) {
   }
 }
 
-async function implementInThisSession(issue: Issue) {
-  if (typeof host?.prompt !== 'function') throw new Error('NOT_GRANTED');
-
-  const result = await host.prompt({ text: buildImplementPrompt(issue), send: true });
-
-  try {
-    await host.sessionLink?.(issueLink(issue, issue.title));
-  } catch {
-    // Linking is a nicety: the prompt already reached the session.
-  }
-
-  if (result.sent === 'sent') toast(`Prompt sent for #${issue.number}`);
-  else if (result.sent === 'no-model') toast('No model selected', 'error');
-  else if (result.sent === 'failed') toast(`The prompt for #${issue.number} could not be sent.`, 'error');
-  else toast(`Prompt ready for #${issue.number}`, 'info');
-  setStatus('');
-}
-
-async function implementInNewSession(issue: Issue) {
+async function startImplementSession(issue: Issue) {
   if (typeof host?.startSession !== 'function') throw new Error('NOT_GRANTED');
 
   const result = await host.startSession({
@@ -742,8 +709,6 @@ function getSessionErrorMessage(error: unknown) {
   const code = getHostErrorCode(error);
   const message = getErrorMessage(error);
 
-  if (hasCode(code, message, 'NO_SESSION')) return 'Open a session first, or use Implement in a new session.';
-  if (hasCode(code, message, 'SESSION_BUSY')) return 'The session is busy. Wait for it to finish.';
   if (hasCode(code, message, 'NOT_GRANTED')) return 'Approve the extension permissions in Settings → Extensions.';
 
   return message;

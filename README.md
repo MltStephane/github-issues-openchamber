@@ -23,9 +23,7 @@ bun run build
 - **Open / Closed** switches the issue state. **Refresh** reloads the list; it also reloads when the project changes.
 - **Filter** narrows the list by title, `#number` or label, without a new request.
 - **Click an issue title** (or press Enter on it) to open it on GitHub.
-- **Implement** opens a menu:
-  - **Implement in this session** sends a short prompt to the current session and links the issue to it.
-  - **Implement in a new session** starts a session linked to the issue, with the same prompt.
+- **Implement** starts a new session linked to the issue, with a short prompt asking the agent to fix it.
 
   The prompt asks the agent to investigate, fix and verify, and **not** to commit.
 - **Commit** opens an inline composer (no modal) for that issue:
@@ -66,7 +64,7 @@ A failed comment never undoes the commit: `/commit` answers 200 with `commentErr
 
 | Declared | Why |
 | --- | --- |
-| `capabilities: ["prompt"]` | Send the Implement prompt to the current session |
+| `capabilities: ["prompt"]` | Send the Implement prompt as the new session's first message |
 | `capabilities: ["sessions"]` | Start a new session linked to the issue |
 | `service.permissions.exec: ["gh", "git"]` | List issues, read changes, commit, comment |
 

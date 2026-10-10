@@ -1,0 +1,22 @@
+{
+  "name": "github-issues",
+  "private": true,
+  "type": "module",
+  "version": "1.0.0",
+  "description": "OpenChamber extension: lists the GitHub issues of the open project, sends one to a session to fix it, and commits the fix with a closing keyword.",
+  "scripts": {
+    "build": "openchamber-guest-bundle panel/main.ts panel/main.js && openchamber-guest-bundle --node service/main.ts service/main.js",
+    "test": "node --test tests/*.test.js",
+    "check": "node --check src/issue.js && node --check src/prompt.js && node --check src/commit.js && node --check src/changes.js && node --check panel/main.js && node --check service/main.js && node --test tests/*.test.js"
+  },
+  "dependencies": { "@openchamber/sdk": "^1.24.2" },
+  "openchamber": {
+    "apiVersion": 1,
+    "engines": { "openchamber": ">=1.24.0" },
+    "contributes": {
+      "panel": { "id": "github-issues", "name": "GitHub Issues", "icon": "icon.svg", "entry": "panel/index.html" },
+      "capabilities": ["prompt", "sessions"],
+      "service": { "entry": "service/main.js", "runtime": "host", "permissions": { "exec": ["gh", "git"] } }
+    }
+  }
+}
